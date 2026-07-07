@@ -341,6 +341,29 @@ def cases_missing_contact_or_owner(cases: pd.DataFrame) -> dict:
     return {"count": len(hit), "cases": out}
 
 
+# ── COMBINED VIEW: all Group-A timing metrics, one row per CS Owner ─────────
+
+def combined_per_owner_timing(results: dict) -> pd.DataFrame:
+    """Merge the four Group-A per-owner tables into one row-per-CS-Owner view.
+
+    Outer join, so an owner appearing in any metric shows up; a metric with no
+    data for that owner is left blank (e.g. an owner with only closed cases has no
+    'Avg Days Since Update', which is open-only)."""
+    parts = [
+        (results["days_since_update"]["per_owner"], "Avg Days Since Update"),
+        (results["update_gaps"]["per_owner"], "Avg Gap Between Updates"),
+        (results["resp_installer"]["per_owner"], "Avg Resp — Installer Comment"),
+        (results["resp_incoming"]["per_owner"], "Avg Resp — Incoming Email"),
+    ]
+    out = None
+    for df, label in parts:
+        piece = df[["CS Owner", "Avg Days"]].rename(columns={"Avg Days": label})
+        out = piece if out is None else out.merge(piece, on="CS Owner", how="outer")
+    if out is None or out.empty:
+        return pd.DataFrame(columns=["CS Owner"] + [label for _, label in parts])
+    return out.sort_values("Avg Days Since Update", ascending=False, na_position="last").reset_index(drop=True)
+
+
 # ── TOP-LEVEL ORCHESTRATION ─────────────────────────────────────────────────
 
 def compute_all(base: dict) -> dict:
@@ -351,7 +374,7 @@ def compute_all(base: dict) -> dict:
     incoming_emails = emails[emails["Incoming"] == True] if "Incoming" in emails.columns else emails.iloc[0:0]  # noqa: E712
     installer_comments = comments[comments["Origin"] == "Installer"]
 
-    return {
+    res = {
         "days_since_update": compute_days_since_update_open(cases, comments, emails),   # metric 1
         "update_gaps": compute_update_gaps(updates),                                    # metric 2
         "resp_installer": compute_response_time(installer_comments, updates, cases),    # metric 3
@@ -362,3 +385,5 @@ def compute_all(base: dict) -> dict:
         "total_cases_all": len(cases),
         "warnings": base.get("warnings", []),
     }
+    res["timing_by_owner"] = combined_per_owner_timing(res)  # combined Group-A view
+    return res

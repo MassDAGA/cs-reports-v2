@@ -113,6 +113,9 @@ def build_workbook(results: dict) -> io.BytesIO:
         write_table(s, df, start, header_bg=header_bg)
         auto_width(s)
 
+    add_table_sheet("Timing by Owner (All)",
+                    "All Timing Metrics — By CS Owner (Average Days)",
+                    r.get("timing_by_owner"))
     add_table_sheet("Days Since Update by Owner",
                     "Avg Days Since Last Update — By CS Owner (Open Cases)",
                     r["days_since_update"]["per_owner"])

@@ -76,6 +76,13 @@ with tab_timing:
     c4.metric("Avg Resp — Incoming Email", _fmt(re["overall_avg"]),
               help=f"Open + closed. Days from an incoming email to the next internal update. {re['unanswered']} unanswered.")
 
+    st.subheader("All Timing Metrics — By CS Owner")
+    st.caption(
+        "One row per CS Owner across all four metrics (average days). Blank = no data for that "
+        "owner/metric (e.g. an owner with only closed cases has no Days Since Update, which is open-only)."
+    )
+    st.dataframe(results["timing_by_owner"], use_container_width=True, hide_index=True)
+
     st.subheader("Avg Days Since Last Update — By CS Owner (Open Cases)")
     st.caption(f"{dsu['total_open']} open cases. Snapshot metric — open only.")
     st.dataframe(dsu["per_owner"], use_container_width=True, hide_index=True)
